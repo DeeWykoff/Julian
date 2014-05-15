@@ -1,0 +1,105 @@
+#!/bin/bash
+# bash version 4 required (bash --version)
+# 
+# Based on the following sources:
+# 
+# http://www.cyberciti.biz/tips/linux-unix-shell-batch-copy.html
+# http://www.onlineconversion.com/html_chmod_calculator.htm
+# http://stackoverflow.com/questions/8880603/loop-through-array-of-strings-in-bash-script
+# http://serverfault.com/questions/219306/control-a-bash-script-with-variables-from-an-external-file
+# http://stackoverflow.com/questions/59895/can-a-bash-script-tell-what-directory-its-stored-in
+# http://stackoverflow.com/questions/13509508/check-if-string-is-neither-empty-not-space-in-shell-script
+#
+
+# Get the name and path of this script
+Me=`basename $0`
+BaseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ServerName=${BaseDir##*/}
+
+clear
+echo $Me" run"
+
+# ServerName="Servername"
+# ServerIP="X.X.X.X"
+# Username="Username"
+# Password="Password"
+# Options="iocharset=utf8,nounix,uid=1000,gid=1000,file_mode=0755,dir_mode=0755,rw"
+# Public="iocharset=utf8,nounix,uid=1000,gid=1000,file_mode=0755,dir_mode=0777,rw"
+source $BaseDir/Config
+
+sleep 10
+
+Done=false
+Swell=false
+Tries=10
+
+while true; do
+	# Check server availability
+	if ping -c 1 $ServerIP &> /dev/null; then
+		echo $ServerName" available"
+		Done=true
+		# Mount each share
+		readarray Shares < $BaseDir/Shares
+		for Share in "${Shares[@]}"; do			
+			# Trim spaces and check if null.
+			Share=`echo $Share`	
+			if [ -n "$Share" ]; then
+				SharePath=$BaseDir"/"$Share
+				mount | grep $SharePath /etc/mtab > /dev/null
+				if [ $? == 0 ]; then
+					echo $Share" is mounted"
+					sleep 1
+				else
+					Done=false
+					echo "Attempting to mount "$Share			
+					mkdir $SharePath -p
+					if [ $Share == "Public" ]; then
+						mount -t cifs  //$ServerIP/$Share  $SharePath  -o username=$Username,password=$Password,$Public
+					else
+						mount -t cifs  //$ServerIP/$Share  $SharePath  -o username=$Username,password=$Password,$Options
+						chmod -R 777 $SharePath
+					fi
+					sleep 1
+				fi
+			fi
+		done
+		sleep 1
+	else
+		echo $ServerName" not available"
+		sleep 15
+	fi
+	# exit if everything mounted or too many attempts
+	if [ "$Done" != "true" ]; then
+		Tries=$[ Tries - 1 ]
+		echo $Tries" tries remaining"
+		sleep 10
+	else
+		echo "Swell! Looks like everything mounted"
+		Swell=true
+		break
+	fi
+done
+
+# if everything mounted ok, grab local copies for when server not present
+# --bwlimit=<kb/second>  to throttle the speed  (1000 should be about 4GB/Hr)
+# --delete-after         to remove files from the destination not found on the source
+if [ "$Swell" = "true" ]; then
+	sleep 1
+	readarray Syncs < $BaseDir/Syncs
+	for Sync in "${Syncs[@]}"; do
+		# Trim spaces and check if null.
+		Sync=`echo $Sync`	
+		if [ -n "$Sync" ]; then
+			clear
+			echo "Rsync from "$BaseDir"/"$Sync" to "$SyncDir"/"
+			sleep 5
+			rsync -h --progress --stats -r -tgo -p -l -D --update $BaseDir/$Sync $SyncDir/ --bwlimit=$BwLimit --delete-after
+		fi
+	done
+fi
+
+echo $Me' end'
+sleep 10
+
+
+
