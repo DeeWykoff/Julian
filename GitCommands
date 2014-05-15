@@ -1,0 +1,15 @@
+git init
+
+git remote add origin https://github.com/User/Project.git
+
+git pull origin master
+
+git add filename
+
+git commit -m 'none of your business why'
+
+git push origin master
+
+
+
+

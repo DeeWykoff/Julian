@@ -1,0 +1,34 @@
+#!/bin/bash
+# bash version 4 required
+# bash --version
+
+Me=`basename $0`
+BaseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+clear
+echo $Me" run"
+
+readarray Shares < $BaseDir/Shares
+for Share in "${Shares[@]}"; do	
+	# Trim spaces and check if null.
+	Share=`echo $Share`	
+	if [ -n "$Share" ]; then
+		mount | grep $BaseDir/$Share /etc/mtab > /dev/null
+		if [ $? == 0 ]; then
+			echo "Attempting to unmount "$Share
+			umount $BaseDir/$Share
+			sleep 1
+		else
+			echo $Share" was not mounted"		
+			sleep 1
+		fi
+	fi
+done
+
+echo $Me' end'
+sleep 2
+
+
+
+
+
