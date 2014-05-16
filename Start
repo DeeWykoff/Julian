@@ -24,7 +24,7 @@ echo $Me" run"
 # Username="Username"
 # Password="Password"
 # Options="iocharset=utf8,nounix,uid=1000,gid=1000,file_mode=0755,dir_mode=0755,rw"
-# Public="iocharset=utf8,nounix,uid=1000,gid=1000,file_mode=0755,dir_mode=0777,rw"
+# Public="iocharset=utf8,nounix,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,rw"
 source $BaseDir/Config
 
 sleep 10
@@ -57,7 +57,6 @@ while true; do
 						mount -t cifs  //$ServerIP/$Share  $SharePath  -o username=$Username,password=$Password,$Public
 					else
 						mount -t cifs  //$ServerIP/$Share  $SharePath  -o username=$Username,password=$Password,$Options
-						chmod -R 777 $SharePath
 					fi
 					sleep 1
 				fi
